@@ -31,7 +31,7 @@ async function initLocalVideo() {
 }
 
 // 3. Handle Incoming Calls (Receiving a connection)
-peer.on('call', (call) => {
+peer.on('call', async (call) => {
     // Safety check: Reject if the call makes total participants > 3 (Us + 2 others)
     if (Object.keys(connectedPeers).length >= 2) {
         console.log("Room full. Rejecting call from:", call.peer);
@@ -39,14 +39,22 @@ peer.on('call', (call) => {
         return;
     }
 
+    if (!localStream) {
+        await initLocalVideo();
+    }
+
     call.answer(localStream); // Answer with our local camera stream
     handleCallStreams(call);
 });
 
 // 4. Initiate Outgoing Call (When clicking 'Connect Peer')
-callBtn.addEventListener('click', () => {
+callBtn.addEventListener('click', async () => {
     const remoteId = peerIdInput.value.trim();
     if (!remoteId) return;
+
+    if (!localStream) {
+        await initLocalVideo();
+    }
 
     if (Object.keys(connectedPeers).length >= 2) {
         alert("You are already connected to 2 people!");
@@ -81,11 +89,16 @@ function handleCallStreams(call) {
 
     container.appendChild(label);
     container.appendChild(video);
+    videoGrid.appendChild(container);
 
     // When the stream arrives, bind it to the video tag
-    call.on('stream', (remoteStream) => {
+    call.on('stream', async (remoteStream) => {
         video.srcObject = remoteStream;
-        videoGrid.appendChild(container);
+        try {
+            await video.play();
+        } catch (err) {
+            console.warn('Remote video autoplay blocked, user interaction may be required.', err);
+        }
     });
 
     // Cleanup if they hang up or lose signal
