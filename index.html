@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-Person Video Chat</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #121212;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 20px auto;
+        }
+        video {
+            width: 100%;
+            background: #222;
+            border-radius: 10px;
+            transform: scaleX(-1); /* Mirrors the local camera view */
+        }
+        .controls { margin-top: 20px; }
+        input, button { padding: 10px; font-size: 16px; border-radius: 5px; border: none; }
+        button { background: #0070f3; color: white; cursor: pointer; }
+    </style>
+    <!-- Include PeerJS Library -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <h1>3-Person Video Prototype</h1>
+    <p>Your ID: <strong id="my-id" style="color: #0070f3;">Connecting...</strong></p>
+
+    <div class="controls">
+        <input type="text" id="peer-id-input" placeholder="Enter Friend's ID">
+        <button id="call-btn">Connect Peer</button>
+    </div>
+
+    <div id="video-grid">
+        <!-- Local stream goes here -->
+        <div>
+            <h3>You</h3>
+            <video id="local-video" autoplay muted playsinline></video>
+        </div>
+        <!-- Remote slots will be dynamically added here -->
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
