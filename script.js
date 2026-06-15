@@ -8,7 +8,19 @@ let localStream;
 const connectedPeers = {}; // Track active connections to enforce the 3-person limit
 
 // 1. Initialize PeerJS (Connects to free PeerJS Cloud Server automatically)
-const peer = new Peer();
+const peer = new Peer(undefined, {
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            // If you have TURN credentials, add them here.
+            // { urls: 'turn:turn.example.com:3478', username: 'your-user', credential: 'your-pass' }
+        ]
+    }
+});
+
+peer.on('error', (err) => console.error('Peer error:', err));
+peer.on('disconnected', () => console.warn('Peer disconnected'));
+peer.on('close', () => console.warn('Peer connection closed'));
 
 // Display your assigned random ID once connected
 peer.on('open', (id) => {
@@ -24,6 +36,10 @@ async function initLocalVideo() {
             audio: true
         });
         localVideo.srcObject = localStream;
+        // Mute local preview to allow autoplay and avoid echo on mobile
+        localVideo.muted = true;
+        localVideo.playsInline = true;
+        localVideo.autoplay = true;
     } catch (err) {
         console.error("Failed to access camera/mic:", err);
         alert("Please allow camera access to run the prototype.");
@@ -75,6 +91,24 @@ callBtn.addEventListener('click', async () => {
 function handleCallStreams(call) {
     const remotePeerId = call.peer;
     connectedPeers[remotePeerId] = call;
+    console.log('Handling call streams for', remotePeerId);
+
+    // Attach ICE / connection state logging if exposed by PeerJS
+    try {
+        const pc = call.peerConnection || call._pc || call.connection && call.connection.peerConnection;
+        if (pc) {
+            if (pc.addEventListener) {
+                pc.addEventListener('iceconnectionstatechange', () => {
+                    console.log('ICE state for', remotePeerId, pc.iceConnectionState || pc.iceConnectionState);
+                });
+                pc.addEventListener('connectionstatechange', () => {
+                    console.log('PC connection state for', remotePeerId, pc.connectionState || pc.readyState);
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Could not attach peerConnection listeners for', remotePeerId, e);
+    }
 
     // Create a container block for this user's video feed
     const container = document.createElement('div');
@@ -86,6 +120,8 @@ function handleCallStreams(call) {
     const video = document.createElement('video');
     video.autoplay = true;
     video.playsInline = true; // Crucial for iOS support
+    // Start muted to satisfy mobile autoplay policies. User can tap to unmute.
+    video.muted = true;
 
     container.appendChild(label);
     container.appendChild(video);
@@ -93,17 +129,49 @@ function handleCallStreams(call) {
 
     // When the stream arrives, bind it to the video tag
     call.on('stream', async (remoteStream) => {
+        console.log('Received remote stream event from', remotePeerId);
         video.srcObject = remoteStream;
-        try {
-            await video.play();
-        } catch (err) {
-            console.warn('Remote video autoplay blocked, user interaction may be required.', err);
-        }
+        video.onloadedmetadata = async () => {
+            try {
+                await video.play();
+            } catch (err) {
+                if (err && err.name === 'AbortError') {
+                    // benign race where a new load interrupted play; ignore
+                    console.debug('play() aborted due to load race for', remotePeerId);
+                } else {
+                    console.warn('Remote video autoplay blocked, user interaction may be required.', err);
+                }
+            }
+        };
+
+        // Mobile hint & tap-to-unmute
+        const hint = document.createElement('div');
+        hint.innerText = 'Tap to enable audio';
+        hint.style.cssText = 'position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.6);color:#fff;padding:6px;border-radius:4px;font-size:12px;';
+        container.style.position = 'relative';
+        container.appendChild(hint);
+        const removeHint = () => { if (hint.parentNode) hint.parentNode.removeChild(hint); };
+        const onTap = async () => {
+            try {
+                video.muted = false;
+                await video.play();
+            } catch (e) {
+                console.warn('Failed to unmute/play after user gesture', e);
+            }
+            removeHint();
+            container.removeEventListener('click', onTap);
+        };
+        container.addEventListener('click', onTap);
     });
 
     // Cleanup if they hang up or lose signal
     call.on('close', () => {
         container.remove();
+        delete connectedPeers[remotePeerId];
+    });
+    call.on('error', (err) => {
+        console.error('Call error with', remotePeerId, err);
+        if (container.parentNode) container.parentNode.removeChild(container);
         delete connectedPeers[remotePeerId];
     });
 }
