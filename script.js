@@ -11,9 +11,19 @@ const connectedPeers = {}; // Track active connections to enforce the 3-person l
 const peer = new Peer(undefined, {
     config: {
         iceServers: [
+            //google public stun
             { urls: 'stun:stun.l.google.com:19302' },
-            // If you have TURN credentials, add them here.
-            // { urls: 'turn:turn.example.com:3478', username: 'your-user', credential: 'your-pass' }
+            { urls: 'stun:stun1.l.google.com:19302' },
+            {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            }
         ]
     }
 });
