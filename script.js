@@ -143,8 +143,7 @@ function handleCallStreams(call) {
     const video = document.createElement('video');
     video.autoplay = true;
     video.playsInline = true; // Crucial for iOS support
-    // Start muted to satisfy mobile autoplay policies. User can tap to unmute.
-    video.muted = true;
+    video.muted = false;
 
     container.appendChild(label);
     container.appendChild(video);
@@ -166,25 +165,6 @@ function handleCallStreams(call) {
                 }
             }
         };
-
-        // Mobile hint & tap-to-unmute
-        const hint = document.createElement('div');
-        hint.innerText = 'Tap to enable audio';
-        hint.style.cssText = 'position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.6);color:#fff;padding:6px;border-radius:4px;font-size:12px;';
-        container.style.position = 'relative';
-        container.appendChild(hint);
-        const removeHint = () => { if (hint.parentNode) hint.parentNode.removeChild(hint); };
-        const onTap = async () => {
-            try {
-                video.muted = false;
-                await video.play();
-            } catch (e) {
-                console.warn('Failed to unmute/play after user gesture', e);
-            }
-            removeHint();
-            container.removeEventListener('click', onTap);
-        };
-        container.addEventListener('click', onTap);
     });
 
     // Cleanup if they hang up or lose signal
