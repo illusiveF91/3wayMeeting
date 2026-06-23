@@ -11,24 +11,17 @@ const connectedPeers = {}; // Track active connections to enforce the 3-person l
 const peer = new Peer(undefined, {
     config: {
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
             {
-                urls: 'turn:openrelay.metered.ca:80',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            },
-            {
-                urls: 'turn:openrelay.metered.ca:443',
-                username: 'openrelayproject',
-                credential: 'openrelayproject'
-            },
-            {
-                urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
+                urls: 'turn:8.211.6.233:3478',
                 username: 'test',
                 credential: 'test'
-            }
+            },
+            {
+                urls: 'turn:8.211.6.233:5349?transport=tcp', 
+                username: 'test',
+                credential: 'test'
+            }       
+
         ]
     }
 });
@@ -108,18 +101,33 @@ function handleCallStreams(call) {
     connectedPeers[remotePeerId] = call;
     console.log('Handling call streams for', remotePeerId);
 
-    // Attach ICE / connection state logging if exposed by PeerJS
+    // Attach detailed ICE / connection state logging
     try {
-        const pc = call.peerConnection || call._pc || call.connection && call.connection.peerConnection;
+        const pc = call.peerConnection || call._pc || (call.connection && call.connection.peerConnection);
         if (pc) {
-            if (pc.addEventListener) {
-                pc.addEventListener('iceconnectionstatechange', () => {
-                    console.log('ICE state for', remotePeerId, pc.iceConnectionState || pc.iceConnectionState);
-                });
-                pc.addEventListener('connectionstatechange', () => {
-                    console.log('PC connection state for', remotePeerId, pc.connectionState || pc.readyState);
-                });
-            }
+            // ICE backup server listenr
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log(`[ICE Candidate] Type: ${event.candidate.type}, Protocol: ${event.candidate.protocol}, Address: ${event.candidate.address}`);
+                } else {
+                    console.log('[ICE Candidate] Gathering complete.');
+                }
+            };
+
+            // ICE connection state listener
+            pc.addEventListener('iceconnectionstatechange', () => {
+                const state = pc.iceConnectionState;
+                console.log(`[ICE State Change] Peer: ${remotePeerId.substring(0,5)}... -> ${state}`);
+                
+                if (state === 'failed') {
+                    console.warn('ICE Failed! Check if TURN server is reachable or credentials are correct.');
+                }
+            });
+
+            // Listen for changes in the connection state
+            pc.addEventListener('connectionstatechange', () => {
+                console.log(`[PC Connection State] Peer: ${remotePeerId.substring(0,5)}... -> ${pc.connectionState}`);
+            });
         }
     } catch (e) {
         console.warn('Could not attach peerConnection listeners for', remotePeerId, e);
