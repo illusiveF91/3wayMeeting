@@ -22,7 +22,8 @@ const peer = new Peer(undefined, {
                 credential: 'test'
             }       
 
-        ]
+        ],
+        iceTransportPolicy: 'relay'
     }
 });
 
