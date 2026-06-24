@@ -32,9 +32,9 @@ peer.on('disconnected', () => console.warn('Peer disconnected'));
 peer.on('close', () => console.warn('Peer connection closed'));
 
 // Display your assigned random ID once connected
-peer.on('open', (id) => {
+peer.on('open', async (id) => {
     myIdDisplay.innerText = id;
-    initLocalVideo();
+    await initLocalVideo();
 });
 
 // 2. Access the webcam and microphone
