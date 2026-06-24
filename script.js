@@ -8,24 +8,25 @@ let localStream;
 const connectedPeers = {}; // Track active connections to enforce the 3-person limit
 
 // 1. Initialize PeerJS (Connects to free PeerJS Cloud Server automatically)
-const peer = new Peer(undefined, {
-    config: {
-        iceServers: [
-            // {
-            //     urls: 'turn:8.211.6.233:3478',
-            //     username: 'test',
-            //     credential: 'test'
-            // },
-            {
-                urls: 'turn:8.211.6.233:443?transport=tcp', 
-                username: 'test',
-                credential: 'test'
-            }       
 
-        ],
-        iceTransportPolicy: 'relay'
-    }
-});
+// const peer = new Peer(undefined, {
+//     config: {
+//         iceServers: [
+//             // {
+//             //     urls: 'turn:8.211.6.233:3478',
+//             //     username: 'test',
+//             //     credential: 'test'
+//             // },
+//             {
+//                 urls: 'turn:8.211.6.233:443?transport=tcp', 
+//                 username: 'test',
+//                 credential: 'test'
+//             }       
+//         ],
+//         iceTransportPolicy: 'relay'
+//     }
+// });
+const peer = new Peer();
 
 peer.on('error', (err) => console.error('Peer error:', err));
 peer.on('disconnected', () => console.warn('Peer disconnected'));
@@ -151,12 +152,12 @@ function handleCallStreams(call) {
     videoGrid.appendChild(container);
 
     // When the stream arrives, bind it to the video tag
-    call.on('stream', async (remoteStream) => {
+    call.on('stream', (remoteStream) => {
         console.log('Received remote stream event from', remotePeerId);
         video.srcObject = remoteStream;
-        video.onloadedmetadata = async () => {
+        video.onloadedmetadata = () => {
             try {
-                await video.play();
+                video.play();
             } catch (err) {
                 if (err && err.name === 'AbortError') {
                     // benign race where a new load interrupted play; ignore
