@@ -11,13 +11,13 @@ const connectedPeers = {}; // Track active connections to enforce the 3-person l
 const peer = new Peer(undefined, {
     config: {
         iceServers: [
+            // {
+            //     urls: 'turn:8.211.6.233:3478',
+            //     username: 'test',
+            //     credential: 'test'
+            // },
             {
-                urls: 'turn:8.211.6.233:3478',
-                username: 'test',
-                credential: 'test'
-            },
-            {
-                urls: 'turn:8.211.6.233:443?transport=tcp', 
+                urls: 'turns:8.211.6.233:443', 
                 username: 'test',
                 credential: 'test'
             }       
