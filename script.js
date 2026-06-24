@@ -17,7 +17,7 @@ const peer = new Peer(undefined, {
             //     credential: 'test'
             // },
             {
-                urls: 'turns:8.211.6.233:443', 
+                urls: 'turn:8.211.6.233:443', 
                 username: 'test',
                 credential: 'test'
             }       
