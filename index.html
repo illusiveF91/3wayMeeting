@@ -24,7 +24,9 @@
             width: 100%;
             background: #222;
             border-radius: 10px;
-            transform: scaleX(-1); /* Mirrors the local camera view */
+        }
+        #local-video {
+            transform: scaleX(-1); /* Mirror only the local camera preview */
         }
         .controls { margin-top: 20px; }
         input, button { padding: 10px; font-size: 16px; border-radius: 5px; border: none; }
@@ -42,6 +44,8 @@
         <input type="text" id="peer-id-input" placeholder="Enter Friend's ID">
         <button id="call-btn">Connect Peer</button>
     </div>
+
+    <pre id="debug" style="text-align:left; max-width:1000px; margin:10px auto; padding:10px; background:#000; color:#9f9; font-size:12px; white-space:pre-wrap; border-radius:6px;"></pre>
 
     <div id="video-grid">
         <!-- Local stream goes here -->
