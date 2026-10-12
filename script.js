@@ -38,9 +38,32 @@ const connectedPeers = {}; // Track active connections to enforce the 3-person l
 //         iceTransportPolicy: 'relay'
 //     }
 // });
-const peer = new Peer();
 
-peer.on('error', (err) => console.error('Peer error:', err));
+// STUN finds each side's public address; TURN relays media when a direct path is
+// impossible (phone on 5G <-> PC behind a corporate network / VPN).
+// Add ?relay=1 to the page URL (on BOTH devices) to force TURN-only for testing.
+const forceRelay = new URLSearchParams(location.search).get('relay') === '1';
+const peer = new Peer(undefined, {
+    config: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            {
+                urls: [
+                    'turn:8.211.6.233:3478?transport=udp',
+                    'turn:8.211.6.233:3478?transport=tcp',
+                    'turn:8.211.6.233:443?transport=tcp'
+                ],
+                username: 'test',
+                credential: 'test'
+            }
+        ],
+        iceTransportPolicy: forceRelay ? 'relay' : 'all'
+    }
+});
+dbg(`ICE policy: ${forceRelay ? 'relay only (TURN)' : 'all'}`);
+
+peer.on('error', (err) => dbg(`Peer error: ${err.type || ''} ${err.message || err}`));
 peer.on('disconnected', () => console.warn('Peer disconnected'));
 peer.on('close', () => console.warn('Peer connection closed'));
 
@@ -190,9 +213,16 @@ function handleCallStreams(call) {
             pc.addEventListener('icecandidate', (event) => {
                 if (event.candidate) {
                     console.log(`[ICE Candidate] Type: ${event.candidate.type}, Protocol: ${event.candidate.protocol}, Address: ${event.candidate.address}`);
+                    // Show only the interesting ones on screen: relay = TURN works
+                    if (event.candidate.type === 'relay') {
+                        dbg(`TURN relay candidate obtained (${event.candidate.protocol})`);
+                    }
                 } else {
-                    console.log('[ICE Candidate] Gathering complete.');
+                    dbg('[ICE] Candidate gathering complete.');
                 }
+            });
+            pc.addEventListener('icecandidateerror', (e) => {
+                dbg(`[ICE error] ${e.url || ''} code=${e.errorCode} ${e.errorText || ''}`);
             });
 
             // ICE connection state listener
@@ -207,7 +237,7 @@ function handleCallStreams(call) {
 
             // Listen for changes in the connection state
             pc.addEventListener('connectionstatechange', () => {
-                console.log(`[PC Connection State] Peer: ${remotePeerId.substring(0,5)}... -> ${pc.connectionState}`);
+                dbg(`[PC State] ${remotePeerId.substring(0,5)}... -> ${pc.connectionState}`);
             });
         }
     } catch (e) {
